@@ -42,6 +42,50 @@ interface ToDo{
 // post a new to do
 app.post('/to-do', async (req, res) => {
   try {
+    const toDoQuerySnapshot = await db.collection(toDoCollection).get();
+    const toDoList: any[] = [];
+    var errorFlag = false;
+    toDoQuerySnapshot.forEach(
+      (toDo) => {
+        if (errorFlag) {
+          return;
+        }
+        const data = toDo.data();
+        if (data.user_id === req.body['user_id']) {
+          if (data.order == req.body['order']) {
+            res.status(500).json({
+              "status": "failed",
+              "msg": "Cannot create a new to do: order already existed",
+            });
+            errorFlag = true;
+            return;
+          }
+          toDoList.push({
+            "id": toDo.id,
+            "note": data.note,
+            "status": data.status,
+            "order": data.order,
+          });
+        }
+      }
+    );
+    if (errorFlag) {
+      return;
+    }
+    if (+req.body['order'] != toDoList.length + 1) {
+      res.status(500).json({
+        "status": "failed",
+        "msg": `Cannot create a new to do: invalid order`,
+      });
+      return;
+    }
+    if (!(["to-do", "on-going", "finished"].includes(req.body['status']))) {
+      res.status(500).json({
+        "status": "failed",
+        "msg": `Cannot create a new to do: invalid status`,
+      });
+      return;
+    }
     const toDo: ToDo = {
       'note': req.body['note'],
       'status': req.body['status'],
@@ -55,8 +99,8 @@ app.post('/to-do', async (req, res) => {
       "id": newDoc.id,
     });
   } catch (error) {
-    res.status(200).json({
-      "status": "success",
+    res.status(500).json({
+      "status": "failed",
       "msg": "Cannot create a new to do",
     });
   }
@@ -102,10 +146,17 @@ app.delete('/to-do/:id', async (req, res) => {
       (toDo) => {
         if (toDo.id == req.params.id) {
           const data = toDo.data();
-          toBeDeletedDataOrder = data.order
+          toBeDeletedDataOrder = data.order;
         }
       }
     )
+    if (toBeDeletedDataOrder == null) {
+      res.status(500).json({
+        "status": "failed",
+        "msg": "Cannot delete a to do: invalid id",
+      });
+      return;
+    }
     toDoQuerySnapshot.forEach(
       (toDo) => {
         const data = toDo.data();
@@ -136,16 +187,46 @@ app.delete('/to-do/:id', async (req, res) => {
 
 // update to do
 app.put('/to-do/:id', async (req, res) => {
+  if ("order" in req.body) {
+    res.status(500).json({
+      "status": "failed",
+      "msg": "Cannot update a to do: order cannot be directly updated",
+    });
+    return;
+  }
+  if ("status" in req.body && !(["to-do", "on-going", "finished"].includes(req.body['status']))) {
+    res.status(500).json({
+      "status": "failed",
+      "msg": `Cannot update a to do: invalid status`,
+    });
+    return;
+  }
+  var toBeEditedData: any = null;
+  const toDoQuerySnapshot = await db.collection(toDoCollection).get();
+  toDoQuerySnapshot.forEach(
+    (toDo) => {
+      if (toDo.id == req.params.id) {
+        toBeEditedData = toDo.data();
+      }
+    }
+  )
+  if (toBeEditedData == null) {
+    res.status(500).json({
+      "status": "failed",
+      "msg": "Cannot edit a to do: invalid id",
+    });
+    return;
+  }
   await db.collection(toDoCollection).doc(req.params.id).set(req.body, {merge: true})
-      .then(() => res.status(200).json({
-        "status": "success",
-        "msg": `Updated a to do: ${req.params.id}`,
-        "id": req.params.id,
-      }))
-      .catch((error) => res.status(500).json({
-        "status": "failed",
-        "msg": `Cannot update a to do: ${error}`,
-      }));
+    .then(() => res.status(200).json({
+      "status": "success",
+      "msg": `Updated a to do: ${req.params.id}`,
+      "id": req.params.id,
+    }))
+    .catch((error) => res.status(500).json({
+      "status": "failed",
+      "msg": `Cannot update a to do: ${error}`,
+    }));
 });
 
 // move up a to do
