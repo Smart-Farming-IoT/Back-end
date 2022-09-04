@@ -15,7 +15,7 @@ interface ToDo {
 }
 
 // post a new to do
-app.post('/to-do', async (req, res) => {
+app.post('/to-do/new', async (req, res) => {
   try {
     const querySnapshot = await db.collection(collectionName).get();
     const list: any[] = [];
@@ -81,9 +81,9 @@ app.post('/to-do', async (req, res) => {
   }
 });
 
-// get all to do
-app.get('/to-do/:userId', async (req, res) => {
-  const userId = req.params.userId;
+// read all to do
+app.post('/to-do', async (req, res) => {
+  const userId = req.body['user_id'];
   try {
     const querySnapshot = await db.collection(collectionName).get();
     const list: any[] = [];
@@ -113,13 +113,14 @@ app.get('/to-do/:userId', async (req, res) => {
 });
 
 // delete a to do
-app.delete('/to-do/:id', async (req, res) => {
+app.delete('/to-do', async (req, res) => {
+  var record_id = req.body['id'];
   var toBeDeletedDataOrder: any = null;
   try {
     const querySnapshot = await db.collection(collectionName).get();
     querySnapshot.forEach(
       (toDo) => {
-        if (toDo.id == req.params.id) {
+        if (toDo.id == record_id) {
           const data = toDo.data();
           toBeDeletedDataOrder = data.order;
         }
@@ -140,11 +141,11 @@ app.delete('/to-do/:id', async (req, res) => {
         }
       }
     )
-    db.collection(collectionName).doc(req.params.id).delete()
+    db.collection(collectionName).doc(record_id).delete()
       .then(() => res.status(200).json({
         "status": "success",
-        "msg": `Deleted a to do: ${req.params.id}`,
-        "id": req.params.id,
+        "msg": `Deleted a to do: ${record_id}`,
+        "id": record_id,
       }))
       .catch((error) => res.status(500).json({
         "status": "failed",
@@ -161,7 +162,8 @@ app.delete('/to-do/:id', async (req, res) => {
 });
 
 // update to do
-app.put('/to-do/:id', async (req, res) => {
+app.put('/to-do', async (req, res) => {
+  var record_id = req.body['id'];
   if ("order" in req.body) {
     res.status(500).json({
       "status": "failed",
@@ -180,7 +182,7 @@ app.put('/to-do/:id', async (req, res) => {
   const querySnapshot = await db.collection(collectionName).get();
   querySnapshot.forEach(
     (toDo) => {
-      if (toDo.id == req.params.id) {
+      if (toDo.id == record_id) {
         toBeEditedData = toDo.data();
       }
     }
@@ -192,11 +194,11 @@ app.put('/to-do/:id', async (req, res) => {
     });
     return;
   }
-  await db.collection(collectionName).doc(req.params.id).set(req.body, { merge: true })
+  await db.collection(collectionName).doc(record_id).set(req.body, { merge: true })
     .then(() => res.status(200).json({
       "status": "success",
-      "msg": `Updated a to do: ${req.params.id}`,
-      "id": req.params.id,
+      "msg": `Updated a to do: ${record_id}`,
+      "id": record_id,
     }))
     .catch((error) => res.status(500).json({
       "status": "failed",
@@ -205,8 +207,8 @@ app.put('/to-do/:id', async (req, res) => {
 });
 
 // move up a to do
-app.post('/to-do/up/:id', async (req, res) => {
-  const toMoveUpId = req.params.id;
+app.post('/to-do/up', async (req, res) => {
+  const toMoveUpId = req.body['id'];
   let toMoveUp: any = null;
   let toMoveDown: any = null;
   try {
@@ -244,7 +246,7 @@ app.post('/to-do/up/:id', async (req, res) => {
       res.status(200).json({
         "status": "success",
         "msg": `Updated to dos: ${toMoveUp.id} and ${toMoveDown.id}`,
-        "id": req.params.id,
+        "id": req.body['id'],
       });
     }
   } catch (error) {
@@ -256,8 +258,8 @@ app.post('/to-do/up/:id', async (req, res) => {
 });
 
 // move down a to do
-app.post('/to-do/down/:id', async (req, res) => {
-  const toMoveDownId = req.params.id;
+app.post('/to-do/down', async (req, res) => {
+  const toMoveDownId = req.body['id'];
   let toMoveUp: any = null;
   let toMoveDown: any = null;
   try {
@@ -295,7 +297,7 @@ app.post('/to-do/down/:id', async (req, res) => {
       res.status(200).json({
         "status": "success",
         "msg": `Updated to dos: ${toMoveUp.id} and ${toMoveDown.id}`,
-        "id": req.params.id,
+        "id": req.body['id'],
       });
     }
   } catch (error) {
