@@ -14,10 +14,9 @@ interface Sensor {
 }
 
 // post a new sensor
-app.post('/sensor', async (req, res) => {
+app.post('/sensor/new', async (req, res) => {
   try {
     const querySnapshot = await db.collection(collectionName).get();
-    const list: any[] = [];
     var errorFlag = false;
     querySnapshot.forEach(
       (sensor) => {
@@ -25,21 +24,13 @@ app.post('/sensor', async (req, res) => {
           return;
         }
         const data = sensor.data();
-        if (data.user_id === req.body['user_id']) {
-          if (data.sensor_imei == req.body['sensor_imei']) {
-            res.status(500).json({
-              "status": "failed",
-              "msg": "Cannot create a new sensor: sensor imei already existed",
-            });
-            errorFlag = true;
-            return;
-          }
-          list.push({
-            "id": sensor.id,
-            "sensor_imei": data.sensor_imei,
-            "status": data.status,
-            "user_id": data.user_id,
+        if (data.sensor_imei == req.body['sensor_imei']) {
+          res.status(500).json({
+            "status": "failed",
+            "msg": "Cannot create a new sensor: sensor imei already existed",
           });
+          errorFlag = true;
+          return;
         }
       }
     );
@@ -69,6 +60,42 @@ app.post('/sensor', async (req, res) => {
     res.status(500).json({
       "status": "failed",
       "msg": "Cannot create a new sensor",
+    });
+  }
+});
+
+// read all sensor
+app.post('/sensor', async (req, res) => {
+  const userId = req.body['user_id'];
+  try {
+    const querySnapshot = await db.collection(collectionName).get();
+    const list: any[] = [];
+    querySnapshot.forEach(
+      (sensor) => {
+        const data = sensor.data();
+        if (data.user_id === userId) {
+          list.push({
+            "id": sensor.id,
+            "sensor_imei": data.sensor_imei,
+            "status": data.status
+          });
+        }
+      }
+    );
+    list.sort((a, b) => {
+      if (a.sensor_imei < b.sensor_imei)
+        return -1;
+      if (a.sensor_imei > b.sensor_imei)
+        return 1;
+      return 0;
+    });
+    res.status(200).json({
+      "sensor_list": list,
+    });
+  } catch (error) {
+    res.status(500).json({
+      "status": "failed",
+      "msg": "Cannot get a sensor list",
     });
   }
 });
