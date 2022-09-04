@@ -99,3 +99,27 @@ app.post('/sensor', async (req, res) => {
     });
   }
 });
+
+// delete a sensor
+app.delete('/sensor', async (req, res) => {
+  var record_id = req.body['id'];
+  try {
+    db.collection(collectionName).doc(record_id).delete()
+      .then(() => res.status(200).json({
+        "status": "success",
+        "msg": `Deleted a sensor: ${record_id}`,
+        "id": record_id,
+      }))
+      .catch((error) => res.status(500).json({
+        "status": "failed",
+        "msg": `Cannot delete a sensor: ${error}`,
+        "description": error,
+      }));
+  } catch (error) {
+    res.status(501).json({
+      "status": "failed",
+      "msg": `Cannot delete a sensor: ${error}`,
+      "description": error,
+    });
+  }
+});
