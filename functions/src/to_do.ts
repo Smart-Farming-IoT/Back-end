@@ -164,6 +164,7 @@ app.delete('/to-do', async (req, res) => {
 // update to do
 app.put('/to-do', async (req, res) => {
   var record_id = req.body['id'];
+  delete req.body['id'];
   if ("order" in req.body) {
     res.status(500).json({
       "status": "failed",
