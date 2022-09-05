@@ -37,7 +37,7 @@ app.post('/sensor/new', async (req, res) => {
     if (errorFlag) {
       return;
     }
-    
+
     if (!(["active", "deactived"].includes(req.body['status']))) {
       res.status(500).json({
         "status": "failed",
@@ -123,3 +123,50 @@ app.delete('/sensor', async (req, res) => {
     });
   }
 });
+
+// update sensor
+app.put('/sensor', async (req, res) => {
+  var record_id = req.body['id'];
+  delete req.body['id'];
+  if ("sensor_imei" in req.body) {
+    res.status(500).json({
+      "status": "failed",
+      "msg": "Cannot update a sensor: sensor imei connot be updated",
+    });
+    return;
+  }
+  if ("status" in req.body && !(["active", "deactived"].includes(req.body['status']))) {
+    res.status(500).json({
+      "status": "failed",
+      "msg": `Cannot update a sensor: invalid status`,
+    });
+    return;
+  }
+  var toBeEditedData: any = null;
+  const querySnapshot = await db.collection(collectionName).get();
+  querySnapshot.forEach(
+    (sensor) => {
+      if (sensor.id == record_id) {
+        toBeEditedData = sensor.data();
+      }
+    }
+  )
+  if (toBeEditedData == null) {
+    res.status(500).json({
+      "status": "failed",
+      "msg": "Cannot edit a sensor: invalid id",
+    });
+    return;
+  }
+  await db.collection(collectionName).doc(record_id).set(req.body, { merge: true })
+    .then(() => res.status(200).json({
+      "status": "success",
+      "msg": `Updated a sensor ${record_id}`,
+      "id": record_id,
+    }))
+    .catch((error) => res.status(500).json({
+      "status": "failed",
+      "msg": `Cannot update a sensor: ${error}`,
+    }));
+}
+);
