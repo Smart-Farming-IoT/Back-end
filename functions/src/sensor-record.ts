@@ -12,19 +12,18 @@ interface SensorRecord {
   'ph': number,
   'moisture': string,
   'timestamp': number,
-  'sensor_id': string,
+  'device_id': string,
 }
 
 // post a new sensor record
 app.post('/sensor-record/new', async (req, res) => {
   try {
-    const sensorCollectionName = 'sensor';
-    const querySnapshot = await db.collection(sensorCollectionName).get();
+    const deviceCollectionName = 'device';
+    const querySnapshot = await db.collection(deviceCollectionName).get();
     var errorFlag = true;
     querySnapshot.forEach(
-      (sensor) => {
-        const data = sensor.data();
-        if (data.id == req.body['sensor_id']) {
+      (device) => {
+        if (device.id == req.body['device_id']) {
           errorFlag = false;
           return;
         }
@@ -33,7 +32,7 @@ app.post('/sensor-record/new', async (req, res) => {
     if (errorFlag) {
       res.status(500).json({
         "status": "failed",
-        "msg": "Cannot create a new sensor record: sensor id not found",
+        "msg": "Cannot create a new sensor record: device id not found",
       });
       return;
     }
@@ -42,7 +41,7 @@ app.post('/sensor-record/new', async (req, res) => {
       'ph': req.body['ph'],
       'moisture': req.body['moisture'],
       'timestamp': req.body['timestamp'],
-      'sensor_id': req.body['sensor_id'],
+      'device_id': req.body['device_id'],
     };
     const newDoc = await db.collection(collectionName).add(sensorRecord);
     res.status(200).json({
@@ -58,108 +57,33 @@ app.post('/sensor-record/new', async (req, res) => {
   }
 });
 
-// read all sensor
-app.post('/sensor', async (req, res) => {
-  const userId = req.body['user_id'];
+// read all sensor record
+app.post('/sensor-record', async (req, res) => {
+  const deviceId = req.body['device_id'];
   try {
     const querySnapshot = await db.collection(collectionName).get();
     const list: any[] = [];
     querySnapshot.forEach(
-      (sensor) => {
-        const data = sensor.data();
-        if (data.user_id === userId) {
+      (sensorRecord) => {
+        const data = sensorRecord.data();
+        if (data.device_id === deviceId) {
           list.push({
-            "id": sensor.id,
-            "sensor_imei": data.sensor_imei,
-            "status": data.status
+            "id": sensorRecord.id,
+            "light_intensity": data.light_intensity,
+            "ph": data.ph,
+            "moisture": data.moisture,
+            "timestamp": data.timestamp
           });
         }
       }
     );
-    list.sort((a, b) => {
-      if (a.sensor_imei < b.sensor_imei)
-        return -1;
-      if (a.sensor_imei > b.sensor_imei)
-        return 1;
-      return 0;
-    });
     res.status(200).json({
-      "sensor_list": list,
+      "sensor_record_list": list,
     });
   } catch (error) {
     res.status(500).json({
       "status": "failed",
-      "msg": "Cannot get a sensor list",
+      "msg": "Cannot get a sensor record list",
     });
   }
 });
-
-// delete a sensor
-app.delete('/sensor', async (req, res) => {
-  var record_id = req.body['id'];
-  try {
-    db.collection(collectionName).doc(record_id).delete()
-      .then(() => res.status(200).json({
-        "status": "success",
-        "msg": `Deleted a sensor: ${record_id}`,
-        "id": record_id,
-      }))
-      .catch((error) => res.status(500).json({
-        "status": "failed",
-        "msg": `Cannot delete a sensor: ${error}`,
-        "description": error,
-      }));
-  } catch (error) {
-    res.status(501).json({
-      "status": "failed",
-      "msg": `Cannot delete a sensor: ${error}`,
-      "description": error,
-    });
-  }
-});
-
-// update sensor
-app.put('/sensor', async (req, res) => {
-  var record_id = req.body['id'];
-  if ("sensor_imei" in req.body) {
-    res.status(500).json({
-      "status": "failed",
-      "msg": "Cannot update a sensor: sensor imei connot be updated",
-    });
-    return;
-  }
-  if ("status" in req.body && !(["active", "deactived"].includes(req.body['status']))) {
-    res.status(500).json({
-      "status": "failed",
-      "msg": `Cannot update a sensor: invalid status`,
-    });
-    return;
-  }
-  var toBeEditedData: any = null;
-  const querySnapshot = await db.collection(collectionName).get();
-  querySnapshot.forEach(
-    (sensor) => {
-      if (sensor.id == record_id) {
-        toBeEditedData = sensor.data();
-      }
-    }
-  )
-  if (toBeEditedData == null) {
-    res.status(500).json({
-      "status": "failed",
-      "msg": "Cannot edit a sensor: invalid id",
-    });
-    return;
-  }
-  await db.collection(collectionName).doc(record_id).set(req.body, { merge: true })
-    .then(() => res.status(200).json({
-      "status": "success",
-      "msg": `Updated a sensor ${record_id}`,
-      "id": record_id,
-    }))
-    .catch((error) => res.status(500).json({
-      "status": "failed",
-      "msg": `Cannot update a sensor: ${error}`,
-    }));
-}
-);
