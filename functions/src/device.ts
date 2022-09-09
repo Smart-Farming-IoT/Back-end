@@ -92,16 +92,16 @@ app.post('/device', async (req, res) => {
 
         if (sensorRecordList.length > 0) {
           sensorRecordList.sort((a, b) => b.timestamp - a.timestamp)
-          data.lastest_light_intensity = sensorRecordList[0].light_intensity
-          data.lastest_ph = sensorRecordList[0].ph
-          data.lastest_moisture = sensorRecordList[0].moisture
-          data.lastest_timestamp = sensorRecordList[0].timestamp
+          data.latest_light_intensity = sensorRecordList[0].light_intensity
+          data.latest_ph = sensorRecordList[0].ph
+          data.latest_moisture = sensorRecordList[0].moisture
+          data.latest_timestamp = sensorRecordList[0].timestamp
         }
         else {
-          data.lastest_light_intensity = "-"
-          data.lastest_ph = "-"
-          data.lastest_moisture = "-"
-          data.lastest_timestamp = 0
+          data.latest_light_intensity = "-"
+          data.latest_ph = "-"
+          data.latest_moisture = "-"
+          data.latest_timestamp = "-"
         }
 
         if (data.user_id === userId) {
@@ -109,10 +109,10 @@ app.post('/device', async (req, res) => {
             "id": device.id,
             "imei": data.imei,
             "name": data.name,
-            "latest_light_intensity": data.lastest_light_intensity,
-            "latest_ph": data.lastest_ph,
-            "latest_moisture": data.lastest_moisture,
-            "latest_timestamp": data.lastest_timestamp,
+            "latest_light_intensity": data.latest_light_intensity,
+            "latest_ph": data.latest_ph,
+            "latest_moisture": data.latest_moisture,
+            "latest_timestamp": data.latest_timestamp,
             "sensor_records": sensorRecordList.slice(0, 5)
           });
         }
