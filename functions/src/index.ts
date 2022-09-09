@@ -3,5 +3,5 @@
 
 export * from './main';
 export * from "./to_do";
-export * from "./sensor";
+export * from "./device";
 export * from "./sensor-record";
