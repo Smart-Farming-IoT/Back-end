@@ -15,13 +15,67 @@ interface SensorRecord {
   'device_id': string,
 }
 
+interface MagellanSensorRecord {
+  'data': Object,
+  'timestamp': Date,
+  'device_id': string,
+}
+
+// post a new sensor record from magellan
+app.post('/magellan-sensor-record/new', async (req, res) => {
+  try {
+    const deviceCollectionName = 'device';
+
+    const imei = req.body.ThingInfo.IMEI;
+    const data = req.body.Sensors;
+    const timestamp = req.body.Timestamp;
+    var device_id = "";
+
+    const querySnapshot = await db.collection(deviceCollectionName).get();
+    var errorFlag = true;
+    querySnapshot.forEach(
+      (device) => {
+        const data = device.data()
+        if (data.imei == imei) {
+          device_id = device.id;
+          errorFlag = false;
+          return;
+        }
+      }
+    );
+    if (errorFlag) {
+      res.status(500).json({
+        "status": "failed",
+        "msg": `Cannot create a new sensor record: device id not found for IMEI ${imei}`,
+      });
+      return;
+    }
+    const sensorRecord: MagellanSensorRecord = {
+      'data': data,
+      'timestamp': timestamp,
+      'device_id': device_id,
+    };
+    const newDoc = await db.collection(collectionName).add(sensorRecord);
+    res.status(200).json({
+      "status": "success",
+      "msg": `Created a new sensor record: ${newDoc.id}`,
+      "id": newDoc.id,
+    });
+  } catch (error) {
+    res.status(500).json({
+      "status": "failed",
+      "msg": `Cannot create a new sensor record: ${error}`,
+    });
+  }
+});
+
 // post a new sensor record
 app.post('/sensor-record/new', async (req, res) => {
   try {
     const deviceCollectionName = 'device';
-    const querySnapshot = await db.collection(deviceCollectionName).get();
+    const deviceQuerySnapshot = await db.collection(deviceCollectionName).get();
     var errorFlag = true;
-    querySnapshot.forEach(
+    deviceQuerySnapshot.forEach(
       (device) => {
         if (device.id == req.body['device_id']) {
           errorFlag = false;
@@ -69,10 +123,7 @@ app.post('/sensor-record', async (req, res) => {
         if (data.device_id === deviceId) {
           list.push({
             "id": sensorRecord.id,
-            "light_intensity": data.light_intensity,
-            "ph": data.ph,
-            "moisture": data.moisture,
-            "timestamp": data.timestamp
+            "data": data
           });
         }
       }
