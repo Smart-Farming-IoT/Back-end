@@ -37,10 +37,17 @@ app.post('/device/new', async (req, res) => {
     if (errorFlag) {
       return;
     }
-    if (req.body['name'] === "") {
+    if (!("imei" in req.body) || req.body['imei'] === "") {
       res.status(500).json({
         "status": "failed",
-        "msg": `Cannot create a new device: invalid status`,
+        "msg": `Cannot create a new device: invalid imei`,
+      });
+      return;
+    }
+    if (!("name" in req.body) || req.body['name'] === "") {
+      res.status(500).json({
+        "status": "failed",
+        "msg": `Cannot create a new device: invalid name`,
       });
       return;
     }
@@ -81,10 +88,8 @@ app.post('/device', async (req, res) => {
             if (data.device_id === device.id) {
               sensorRecordList.push({
                 "id": sensorRecord.id,
-                "light_intensity": data.light_intensity,
-                "ph": data.ph,
-                "moisture": data.moisture,
-                "timestamp": Number(data.timestamp)
+                "data": data.data,
+                "timestamp": new Date(data.timestamp)
               });
             }
           }
@@ -92,16 +97,6 @@ app.post('/device', async (req, res) => {
 
         if (sensorRecordList.length > 0) {
           sensorRecordList.sort((a, b) => b.timestamp - a.timestamp)
-          data.latest_light_intensity = sensorRecordList[0].light_intensity
-          data.latest_ph = sensorRecordList[0].ph
-          data.latest_moisture = sensorRecordList[0].moisture
-          data.latest_timestamp = sensorRecordList[0].timestamp
-        }
-        else {
-          data.latest_light_intensity = "-"
-          data.latest_ph = "-"
-          data.latest_moisture = "-"
-          data.latest_timestamp = "-"
         }
 
         if (data.user_id === userId) {
@@ -109,10 +104,6 @@ app.post('/device', async (req, res) => {
             "id": device.id,
             "imei": data.imei,
             "name": data.name,
-            "latest_light_intensity": data.latest_light_intensity,
-            "latest_ph": data.latest_ph,
-            "latest_moisture": data.latest_moisture,
-            "latest_timestamp": data.latest_timestamp,
             "sensor_records": sensorRecordList.slice(0, 5)
           });
         }
@@ -140,6 +131,38 @@ app.post('/device', async (req, res) => {
 app.delete('/device', async (req, res) => {
   var record_id = req.body['id'];
   try {
+    const sensorRecordCollectionName = 'sensor-record';
+    const sensorRecordQuerySnapshot = await db.collection(sensorRecordCollectionName).get();
+    sensorRecordQuerySnapshot.forEach(
+      (sensorRecord) => {
+        const data = sensorRecord.data();
+        if (data.device_id == record_id) {
+          db.collection(sensorRecordCollectionName).doc(sensorRecord.id).delete()
+            .catch((error) => res.status(500).json({
+              "status": "failed",
+              "msg": `Cannot delete a sensor record: ${error}`,
+              "description": error,
+            }));
+        }
+      }
+    );
+    const querySnapshot = await db.collection(collectionName).get();
+    var toBeDeletedDevice = null
+    querySnapshot.forEach(
+      (device) => {
+        if (device.id == record_id) {
+          toBeDeletedDevice = device;
+          return
+        }
+      }
+    )
+    if (toBeDeletedDevice == null) {
+      res.status(500).json({
+        "status": "failed",
+        "msg": "Cannot delete a device: invalid id",
+      });
+      return;
+    }
     db.collection(collectionName).doc(record_id).delete()
       .then(() => res.status(200).json({
         "status": "success",
