@@ -2,6 +2,6 @@
 /* eslint-disable max-len */
 
 export * from './main';
-export * from "./to_do";
+export * from "./to-do";
 export * from "./device";
 export * from "./sensor-record";
