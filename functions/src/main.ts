@@ -15,6 +15,9 @@ admin.initializeApp(functions.config().firebase);
 export const app = express();
 const main = express();
 
+// line channel access token
+// export const TOKEN = ""
+
 // enable all cors requests
 main.use(cors());
 
@@ -30,3 +33,21 @@ export const db = admin.firestore();
 
 // define google cloud function name
 export const webApi = functions.https.onRequest(main);
+
+// post a debug
+app.post('/debug', async (req, res) => {
+  try {
+    const newDoc = await db.collection('debug').add(req.body)
+    res.status(200).json({
+      "status": "success",
+      "msg": "Debug DONE!",
+      "id": newDoc.id,
+    });
+  } catch (error) {
+    res.status(500).json({
+      "status": "failed",
+      "msg": `Cannot create a user linker: ${error}`,
+    });
+  }
+});
+
