@@ -70,54 +70,59 @@ app.post('/device/new', async (req, res) => {
   }
 });
 
+export async function readAllDevicesByUserId(userId: string) {
+  const querySnapshot = await db.collection(collectionName).get();
+  const sensorRecordQuerySnapshot = await db.collection("sensor-record").get();
+  const list: any[] = [];
+  querySnapshot.forEach(
+    (device) => {
+      const data = device.data();
+      const sensorRecordList: any[] = [];
+
+      sensorRecordQuerySnapshot.forEach(
+        (sensorRecord) => {
+          const data = sensorRecord.data();
+          if (data.device_id === device.id) {
+            sensorRecordList.push({
+              "id": sensorRecord.id,
+              "data": data.data,
+              "timestamp": new Date(data.timestamp)
+            });
+          }
+        }
+      );
+
+      if (sensorRecordList.length > 0) {
+        sensorRecordList.sort((a, b) => b.timestamp - a.timestamp)
+      }
+
+      if (data.user_id === userId) {
+        list.push({
+          "id": device.id,
+          "imei": data.imei,
+          "name": data.name,
+          "sensor_records": sensorRecordList.slice(0, 5)
+        });
+      }
+    }
+  );
+  list.sort((a, b) => {
+    if (a.imei < b.imei)
+      return -1;
+    if (a.imei > b.imei)
+      return 1;
+    return 0;
+  });
+  return list;
+}
+
 // read all device
 app.post('/device', async (req, res) => {
   const userId = req.body['user_id'];
   try {
-    const querySnapshot = await db.collection(collectionName).get();
-    const sensorRecordQuerySnapshot = await db.collection("sensor-record").get();
-    const list: any[] = [];
-    querySnapshot.forEach(
-      (device) => {
-        const data = device.data();
-        const sensorRecordList: any[] = [];
-
-        sensorRecordQuerySnapshot.forEach(
-          (sensorRecord) => {
-            const data = sensorRecord.data();
-            if (data.device_id === device.id) {
-              sensorRecordList.push({
-                "id": sensorRecord.id,
-                "data": data.data,
-                "timestamp": new Date(data.timestamp)
-              });
-            }
-          }
-        );
-
-        if (sensorRecordList.length > 0) {
-          sensorRecordList.sort((a, b) => b.timestamp - a.timestamp)
-        }
-
-        if (data.user_id === userId) {
-          list.push({
-            "id": device.id,
-            "imei": data.imei,
-            "name": data.name,
-            "sensor_records": sensorRecordList.slice(0, 5)
-          });
-        }
-      }
-    );
-    list.sort((a, b) => {
-      if (a.imei < b.imei)
-        return -1;
-      if (a.imei > b.imei)
-        return 1;
-      return 0;
-    });
+    var devices = await readAllDevicesByUserId(userId);
     res.status(200).json({
-      "device_list": list,
+      "device_list": devices,
     });
   } catch (error) {
     res.status(500).json({

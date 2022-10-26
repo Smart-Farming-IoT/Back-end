@@ -5,7 +5,7 @@
 import { app, db } from './main';
 
 // initialize the collection
-const collectionName = 'to_do';
+const collectionName = 'to-do';
 
 interface ToDo {
   'note': string,
