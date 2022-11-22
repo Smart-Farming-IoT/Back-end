@@ -103,6 +103,12 @@ app.post('/line-api/webhook', async (req, res) => {
             ]
           })
         }
+        else if (req.body.events[0].message.text === "คู่มือการใช้งาน") {
+          dataString = JSON.stringify({
+            replyToken: req.body.events[0].replyToken,
+            messages: []
+          })
+        }
         else if (req.body.events[0].message.text === "แสดงเซนเซอร์ทั้งหมด") {
           var devices = await readAllDevicesByUserId(firebaseUserId);
           var message = "เซนเซอร์ของคุณทั้งหมดมีดังนี้"
