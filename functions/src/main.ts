@@ -18,6 +18,9 @@ const main = express();
 // line channel access token
 // export const TOKEN = ""
 
+// AIS magellan token
+// var aisToken = ""
+  
 // enable all cors requests
 main.use(cors());
 

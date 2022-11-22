@@ -2,7 +2,9 @@
 /* eslint-disable max-len */
 
 // import libraries
-import { app, db } from './main';
+import { app, db, AISTOKEN } from './main';
+
+const axios = require("axios");
 
 // initialize the collection
 const collectionName = 'sensor-record';
@@ -130,6 +132,58 @@ app.post('/sensor-record', async (req, res) => {
     );
     res.status(200).json({
       "sensor_record_list": list,
+    });
+  } catch (error) {
+    res.status(500).json({
+      "status": "failed",
+      "msg": "Cannot get a sensor record list",
+    });
+  }
+});
+
+// command
+app.post('/sensor-record/command', async (req, res) => {
+  const deviceId = req.body['device_id'];
+
+  var command = 0;
+  var target = req.body['target'];
+  if (req.body['command'] === "on") {
+    command = 1;
+  }
+  var message = `สั่งการ ${target} ไม่สำเร็จ`
+
+  const deviceCollectionName = 'device';
+
+  try {
+    const deviceQuerySnapshot = await db.collection(deviceCollectionName).get();
+    for (var i in deviceQuerySnapshot.docs) {
+      var device = deviceQuerySnapshot.docs[i]
+      if (device.id === deviceId) {
+        // const data = device.data();
+        await axios.post(
+          "https://magellan.ais.co.th/quasar/quasarapi/api/v2/control/thing",
+          {
+            "ControlByType": "Project",
+            "ControlKey": "6310d5290a741a00019cce58",
+            "ThingId": ["6311dd52f3be140001686f16"],
+            "Sensors": {[`${target}`]: command}
+          },
+          {
+            headers: { Authorization: `Bearer ${AISTOKEN}` }
+          }
+        ).then((aisResponse: any) => {
+          console.log(aisResponse.data);
+          // message = `เปิด ${target} สำเร็จ (${aisResponse.data.OperationStatus.Message.TH})`
+          message = `สั่งการ ${target} สำเร็จ`
+        }).catch((error: any) => {
+          console.log(error.response)
+          message = `สั่งการ ${target} ไม่สำเร็จ ${error.response}`
+        });
+        break;
+      }
+    }
+    res.status(200).json({
+      "msg": message,
     });
   } catch (error) {
     res.status(500).json({

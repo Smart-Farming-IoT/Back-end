@@ -2,7 +2,7 @@
 /* eslint-disable max-len */
 
 // import libraries
-import { app, db, TOKEN } from './main';
+import { app, db, TOKEN, AISTOKEN } from './main';
 import { readAllDevicesByUserId } from './device';
 
 const axios = require("axios");
@@ -85,9 +85,6 @@ async function findFirebaseUserId(req: any) {
 
 // line webhook
 app.post('/line-api/webhook', async (req, res) => {   
-  // AIS magellan token
-  // var aisToken = ""
-  
   try {
     // res.send("HTTP POST request sent to the webhook URL!")
     var firebaseUserId = await findFirebaseUserId(req)
@@ -121,7 +118,7 @@ app.post('/line-api/webhook', async (req, res) => {
                 message += `\n - ${key}: ${value}`
               }
             }
-            message += "\n"
+            // message += "\n"
           }); 
           dataString = JSON.stringify({
             replyToken: req.body.events[0].replyToken,
@@ -169,7 +166,7 @@ app.post('/line-api/webhook', async (req, res) => {
                 );
               }
             }
-            message += "\n"
+            // message += "\n"
           }); 
           dataString = JSON.stringify({
             replyToken: req.body.events[0].replyToken,
@@ -213,7 +210,7 @@ app.post('/line-api/webhook', async (req, res) => {
                       "Sensors": {[`${target}`]: command}
                     },
                     {
-                      headers: { Authorization: `Bearer ${aisToken}` }
+                      headers: { Authorization: `Bearer ${AISTOKEN}` }
                     }
                   ).then((aisResponse: any) => {
                     console.log(aisResponse.data);
